@@ -4,6 +4,8 @@ import { GroupStudent } from "../entity/group-student.entity"
 import { Group } from "../entity/group.entity"
 import { Roll } from "../entity/roll.entity"
 import { StudentRollState } from "../entity/student-roll-state.entity"
+import { Student } from "../entity/student.entity"
+import { CreateGroupStudentInput } from "../interface/group-student-input.interface"
 import { CreateGroupInput, UpdateGroupInput } from "../interface/group.interface"
 
 export class GroupController {
@@ -78,7 +80,7 @@ export class GroupController {
       }
 
       return this.groupRepository.remove(group)
-    } catch (err) {
+    } catch{
       const res = { Status: "Failure", Reason: "Something went wrong. Please try again" }
       return response.status(400).send(res)
     }
@@ -87,26 +89,44 @@ export class GroupController {
   async getGroupStudents(request: Request, response: Response, next: NextFunction) {
     // Task 1:
     // Return the list of Students that are in a Group
+    try{
+    const studentDetails = await this.groupStudentRepository.createQueryBuilder("group_student")
+    .select(["group_student.id as group_id","student_id", "student.first_name as first_name", "student.last_name as last_name","first_name||\" \"||last_name as full_name"])
+    .innerJoin(Student, "student", "group_student.student_id = student.id")
+    .getRawMany();
+
+   
+    return studentDetails;
+    }catch{
+      const res = { Status: "Failure", Reason: "Something went wrong. Please try again" }
+      return response.status(400).send(res);
+    }
   }
 
   async runGroupFilters(request: Request, response: Response, next: NextFunction) {
-    // Task 2:
-    // 1. Clear out the groups (delete all the students from the groups)
-    await this.groupStudentRepository.delete({})
-    console.log("Hi")
-    // 2. For each group, query the student rolls to see which students match the filter for the group
-    const groupsData = await this.groupRepository.find()
-    console.log("Hello")
-    groupsData.forEach(async (group) => {
-     
-      //get the start and enddates
-      const {startDate, endDate} = getStartEndDates(group.number_of_weeks)
+    try {
+      // Task 2:
+      // 1. Clear out the groups (delete all the students from the groups)
+      await this.groupStudentRepository.delete({})
 
-      //get the operator to be performed.
-      const studentRollStates = getStudentRollStates(group)
-      console.log("Date", startDate, "end", endDate)
+      // 2. For each group, query the student rolls to see which students match the filter for the group
+      const groupsData = await this.groupRepository.find()
 
-      /**
+      if(groupsData == undefined){
+        const res = { Status: "Failure", Reason: "Group Filters not found. Create group filters and try again" }
+        return response.status(400).send(res);
+      }
+
+      groupsData.forEach(async (group) => {
+        //get the start and enddates
+        const { startDate, endDate } = getStartEndDates(group.number_of_weeks)
+
+        //get the operator to be performed.
+        const studentRollStates = getStudentRollStates(group)
+        console.log("Date", startDate, "end", endDate)
+
+        // 3. Add the list of students that match the filter to the group
+        /**
        * sql query
        * 
        * SELECT student_id, count("student_roll_state"."student_id") 
@@ -118,43 +138,67 @@ export class GroupController {
         IN ('late') GROUP BY "student_roll_state"."student_id" 
         HAVING incident_count > 0
        */
-      const filteredStudents = await this.studentRollStateRepository
-        .createQueryBuilder("student_roll_state")
-        .select(["student_id", "count(student_roll_state.student_id) as incident_count"])
-        .innerJoin(Roll, "roll", "student_roll_state.roll_id = roll.id")
-        .where("roll.completed_at BETWEEN :startDate AND :endDate", { startDate, endDate })
-        .andWhere("student_roll_state.state IN (:...studentRollStates)", { studentRollStates })
-        .groupBy("student_roll_state.student_id")
-        .having(`incident_count ${group.ltmt} :incidents`, { incidents: group.incidents })
-        .getRawMany();
+        const filteredStudents = await this.studentRollStateRepository
+          .createQueryBuilder("student_roll_state")
+          .select(["student_id", "count(student_roll_state.student_id) as incident_count"])
+          .innerJoin(Roll, "roll", "student_roll_state.roll_id = roll.id")
+          .where("roll.completed_at BETWEEN :startDate AND :endDate", { startDate, endDate })
+          .andWhere("student_roll_state.state IN (:...studentRollStates)", { studentRollStates })
+          .groupBy("student_roll_state.student_id")
+          .having(`incident_count ${group.ltmt} :incidents`, { incidents: group.incidents })
+          .getRawMany()
 
-      console.log(filteredStudents)
-      console.log(group)
-      console.log(studentRollStates);
+        console.log(filteredStudents)
+        console.log(group)
+        console.log(studentRollStates)
 
-      
+        filteredStudents.forEach((student) => {
+          const createGroupStudentInput: CreateGroupStudentInput = {
+            group_id: group.id,
+            incident_count: student.incident_count,
+            student_id: student.student_id,
+          }
 
-      return "true"
-    })
+          const groupStudent = new GroupStudent()
+          groupStudent.prepareToCreate(createGroupStudentInput)
+          console.log("group student", groupStudent)
+          this.groupStudentRepository.save(groupStudent)
 
-    // 3. Add the list of students that match the filter to the group
+          //saving meta data
+          this.groupRepository.createQueryBuilder().update(Group).set({ run_at: new Date(), student_count: filteredStudents.length }).where("id = :id", { id: group.id }).execute()
+        })
+      })
+      return "Group filters have succesfully executed!"
+    } catch (err) {
+      const res = { Status: "Failure", Reason: "Something went wrong. Please try again" }
+      return response.status(400).send(res)
+    }
   }
 }
 
+/**
+ * This method converts the comma seperated dates into an array
+ * @param group 
+ * @returns Array of roll_states
+ */
 function getStudentRollStates(group: Group) {
   if (group.roll_states) return group.roll_states.split(",")
 }
 
+
+/**
+ * This method returns the analysis period(start and end date) of the filters
+ * @param number_of_weeks the number of weeks for the analysis 
+ * @returns the startdate and endate of analysis period
+ */
 function getStartEndDates(number_of_weeks: number): { startDate: string; endDate: string } {
   //startDate is calculated by subtracting the corresponding time for the number_of_weeks provided by staff
-  let endDateTime = new Date();
+  let endDateTime = new Date()
   let startDateTime = new Date(endDateTime.getTime() - number_of_weeks * 7 * (1000 * 60 * 60 * 24))
 
-  let endDate = endDateTime.toISOString().slice(0,10);
-  let startDate = startDateTime.toISOString().slice(0,10);
-  
+  //we only want the date so trimming away the time.
+  let endDate = endDateTime.toISOString().slice(0, 10)
+  let startDate = startDateTime.toISOString().slice(0, 10)
 
-
-  return { startDate, endDate}
+  return { startDate, endDate }
 }
-

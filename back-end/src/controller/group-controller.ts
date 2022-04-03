@@ -112,7 +112,8 @@ export class GroupController {
       // 2. For each group, query the student rolls to see which students match the filter for the group
       const groupsData = await this.groupRepository.find()
 
-      if(groupsData == undefined){
+       //checking whether group filters is empty
+       if(groupsData.length ==0 ){
         const res = { Status: "Failure", Reason: "Group Filters not found. Create group filters and try again" }
         return response.status(400).send(res);
       }

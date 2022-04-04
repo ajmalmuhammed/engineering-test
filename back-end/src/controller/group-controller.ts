@@ -30,7 +30,7 @@ export class GroupController {
       number_of_weeks: params.number_of_weeks,
       roll_states: params.roll_states,
       incidents: params.incidents,
-      ltmt: params.ltmt,
+      ltmt: params.ltmt
     }
 
     const group = new Group()
@@ -124,7 +124,6 @@ export class GroupController {
 
         // get the operator to be performed.
         const studentRollStates = getStudentRollStates(group)
-        console.log("Date", startDate, "end", endDate)
 
         // 3. Add the list of students that match the filter to the group
         /**
@@ -149,9 +148,7 @@ export class GroupController {
           .having(`incident_count ${group.ltmt} :incidents`, { incidents: group.incidents })
           .getRawMany()
 
-        console.log(filteredStudents)
-        console.log(group)
-        console.log(studentRollStates)
+
 
         filteredStudents.forEach((student) => {
           const createGroupStudentInput: CreateGroupStudentInput = {
@@ -162,11 +159,15 @@ export class GroupController {
 
           const groupStudent = new GroupStudent()
           groupStudent.prepareToCreate(createGroupStudentInput)
-          console.log("group student", groupStudent)
           this.groupStudentRepository.save(groupStudent)
 
           // saving meta data
-          this.groupRepository.createQueryBuilder().update(Group).set({ run_at: new Date(), student_count: filteredStudents.length }).where("id = :id", { id: group.id }).execute()
+          this.groupRepository
+              .createQueryBuilder()
+              .update(Group)
+              .set({ run_at: new Date(), student_count: filteredStudents.length })
+              .where("id = :id", { id: group.id })
+              .execute()
         })
       })
       return "Group filters have succesfully executed!"

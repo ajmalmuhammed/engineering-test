@@ -7,116 +7,114 @@ export const Routes = [
     method: "get",
     route: "/student/get-all",
     controller: StudentController,
-    action: "allStudents",
+    action: "allStudents"
   },
   {
     method: "get",
     route: "/student/get-by-id",
     controller: StudentController,
-    action: "getStudent",
+    action: "getStudent"
   },
   {
     method: "post",
     route: "/student/create",
     controller: StudentController,
-    action: "createStudent",
+    action: "createStudent"
   },
   {
     method: "put",
     route: "/student/update",
     controller: StudentController,
-    action: "updateStudent",
+    action: "updateStudent"
   },
   {
     method: "delete",
     route: "/student/delete",
     controller: StudentController,
-    action: "removeStudent",
+    action: "removeStudent"
   },
   {
     method: "get",
     route: "/roll/get-all",
     controller: RollController,
-    action: "allRolls",
+    action: "allRolls"
   },
   {
     method: "get",
     route: "/roll/get-by-id",
     controller: RollController,
-    action: "getRoll",
+    action: "getRoll"
   },
   {
     method: "post",
     route: "/roll/create",
     controller: RollController,
-    action: "createRoll",
+    action: "createRoll"
   },
   {
     method: "put",
     route: "/roll/update",
     controller: RollController,
-    action: "updateRoll",
+    action: "updateRoll"
   },
   {
     method: "delete",
     route: "/roll/delete",
     controller: RollController,
-    action: "removeRoll",
+    action: "removeRoll"
   },
   {
     method: "post",
     route: "/roll/add-student-states",
     controller: RollController,
-    action: "addStudentRollStates",
+    action: "addStudentRollStates"
   },
   {
     method: "post",
     route: "/roll/add-student-roll-state",
     controller: RollController,
-    action: "addStudentRollState",
+    action: "addStudentRollState"
   },
   {
     method: "put",
     route: "/roll/update-student-roll-state",
     controller: RollController,
-    action: "updateStudentRollState",
+    action: "updateStudentRollState"
   },
   {
     method: "get",
     route: "/group/get-all",
     controller: GroupController,
-    action: "allGroups",
+    action: "allGroups"
   },
   {
     method: "post",
     route: "/group/create",
     controller: GroupController,
-    action: "createGroup",
+    action: "createGroup"
   },
   {
     method: "put",
     route: "/group/update",
     controller: GroupController,
-    action: "updateGroup",
+    action: "updateGroup"
   },
   {
     method: "delete",
     route: "/group/delete/:id",
     controller: GroupController,
-    action: "removeGroup",
+    action: "removeGroup"
   },
   {
     method: "post",
     route: "/group/run-group-filters",
     controller: GroupController,
-    action: "runGroupFilters",
+    action: "runGroupFilters"
   },
   {
     method: "get",
     route: "/group/get-students-in-group",
     controller: GroupController,
-    action: "getGroupStudents",
-  },
-
-
+    action: "getGroupStudents"
+  }
 ]
